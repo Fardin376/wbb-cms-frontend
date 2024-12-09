@@ -1,0 +1,97 @@
+body {
+  overflow-x: hidden !important;
+}
+
+.media-bg {
+  background-image: url("./assets/articleBg.png");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+@media (min-width: 320px) and (max-width: 1279px) {
+  .morph li {
+    background: #252525dd;
+    box-shadow: inset -4px -4px 5px rgba(155, 154, 154, 0.1);
+  }
+  .morph .active {
+    background: #252525dd;
+    box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.6),
+      inset -4px -4px 8px rgba(255, 255, 255, 0.1);
+  }
+}
+@media (min-width: 1280px) {
+
+  .morph li {
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .morph li:hover {
+    background: #303030;
+  }
+}
+
+.glass {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(2px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.loading-spinner {
+  padding: 2rem;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+.error-message {
+  padding: 2rem;
+  color: #ff4444;
+  font-size: 1.1rem;
+}
+
+.no-content {
+  padding: 2rem;
+  color: #666;
+  font-style: italic;
+}
+
+.menu .has-submenu {
+  position: relative;
+}
+
+.menu .has-submenu > ul {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: all 0.3s ease;
+}
+
+.menu .has-submenu:hover > ul,
+.menu .has-submenu.active > ul {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.menu .has-submenu > ul .has-submenu > ul {
+  transform: translateX(10px);
+}
+
+.menu .has-submenu > ul .has-submenu:hover > ul {
+  transform: translateX(0);
+}
+
+.menu li:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.menu .has-submenu > ul li {
+  width: 100%;
+  padding: 8px;
+}
