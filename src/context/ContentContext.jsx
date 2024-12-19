@@ -12,6 +12,7 @@ export const ContentProvider = ({ children }) => {
   const [noticePosts, setNoticePosts] = useState([]);
   const [pages, setPages] = useState([]);
   const [menus, setMenus] = useState([]);
+  const [footerLinks, setFooterLinks] = useState([])
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [researchAndPublications, setResearchAndPublications] = useState([]);
@@ -32,7 +33,7 @@ export const ContentProvider = ({ children }) => {
       pdfs: Array.isArray(post.pdfs)
         ? post.pdfs.map((pdf) => ({
             ...pdf,
-            url: pdf.url || `/api/public/download/pdf/${pdf.id}`,
+            url: pdf.url || `/public/download/pdf/${pdf.id}`,
           }))
         : [],
       createdAt: post.createdAt
@@ -50,6 +51,7 @@ export const ContentProvider = ({ children }) => {
     }),
     []
   );
+  
 
   const categorizePost = useCallback((post) => {
     const type = post?.category?.type?.toLowerCase();
@@ -73,11 +75,14 @@ export const ContentProvider = ({ children }) => {
         return;
       }
 
-      const [postsRes, pagesRes, menusRes] = await Promise.all([
+      const [postsRes, pagesRes, menusRes, footerRes] = await Promise.all([
         fetchPublicContent('posts'),
         fetchPublicContent('pages'),
         fetchPublicContent('menu'),
+        fetchPublicContent('all-footer-links'),
       ]);
+
+      console.log('Footer API Response:', footerRes); // Debug response
 
       // Initialize variables at a higher scope
       let processedPosts = [];
@@ -87,15 +92,18 @@ export const ContentProvider = ({ children }) => {
       if (postsRes.success && postsRes.posts) {
         // Debug log raw posts data
         console.log('Raw posts data:', postsRes.posts);
-        
+
         processedPosts = postsRes.posts.map(processPost);
-        
+
         // Debug log processed posts
-        console.log('Processed posts with pages:', processedPosts.map(p => ({
-          id: p._id,
-          title: p.title,
-          pages: p.pages
-        })));
+        console.log(
+          'Processed posts with pages:',
+          processedPosts.map((p) => ({
+            id: p._id,
+            title: p.title,
+            pages: p.pages,
+          }))
+        );
 
         // Categorize posts
         const categorizedPosts = processedPosts.reduce(
@@ -121,6 +129,13 @@ export const ContentProvider = ({ children }) => {
           }
         );
 
+        if (Array.isArray(footerRes.footers)) {
+          setFooterLinks(footerRes.footers);
+          console.log('Footer links updated:', footerRes.footers);
+        } else {
+          console.error('Invalid footer response:', footerRes);
+        }
+
         setPosts(processedPosts);
         setFeaturedPosts(categorizedPosts.featured);
         setResearchPosts(categorizedPosts.research);
@@ -134,7 +149,7 @@ export const ContentProvider = ({ children }) => {
           ...page,
           slug: page.slug.replace(/^\/+|\/+$/g, ''),
           hasTemplate: !!page.template,
-          layout: page.layout || null
+          layout: page.layout || null,
         }));
 
         console.log('Valid pages:', validPages);
@@ -211,6 +226,7 @@ export const ContentProvider = ({ children }) => {
         researchAndPublications,
         pages,
         menus,
+        footerLinks,
         loading,
         error,
         refreshContent: fetchContent,
@@ -221,7 +237,6 @@ export const ContentProvider = ({ children }) => {
     </ContentContext.Provider>
   );
 };
-
 ContentProvider.propTypes = {
   children: PropTypes.node.isRequired,
 };

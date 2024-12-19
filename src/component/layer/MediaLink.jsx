@@ -65,6 +65,7 @@ const MediaLink = ({ itemVariants }) => {
       <div className="link">
         <CustomBtn
           text="View All"
+          href="/media-center"
           className="text-white border-white font-normal text-base py-1.5"
         />
       </div>

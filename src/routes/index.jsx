@@ -15,32 +15,38 @@ export const router = createBrowserRouter([
         element: <Home />,
       },
       {
-        path: 'home',
+        path: '/home',
         element: <Home />,
       },
+
       {
-        path: 'research',
-        element: <ViewAllPosts category="research" />,
-      },
-      {
-        path: 'publications',
-        element: <ViewAllPosts category="research" />,
-      },
-      {
-        path: 'news-and-articles',
-        element: <ViewAllPosts category="article" />,
-      },
-      {
-        path: 'pages/:slug(*)',
+        path: '/pages/:slug(*)',
         element: <DynamicPage />,
       },
       {
-        path: 'posts/:slug',
+        path: '/posts/:slug',
         element: <PostDetails />,
       },
       {
         path: '*',
         element: <DynamicPage />,
+      },
+
+      {
+        path: '/research',
+        element: <ViewAllPosts category="research" title="Research" />,
+      },
+      {
+        path: '/publications',
+        element: <ViewAllPosts category="research" title="Publications" />,
+      },
+      {
+        path: '/news-and-articles',
+        element: <ViewAllPosts category="article" title="News and Articles" />,
+      },
+      {
+        path: '/media-center',
+        element: <ViewAllPosts category="notice" title="Media Center" />,
       },
     ],
   },

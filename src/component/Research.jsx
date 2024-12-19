@@ -22,7 +22,7 @@ const Accordion = ({ id, title, text, isOpen, onToggle, pdfs }) => {
 
       const downloadUrl = `${
         import.meta.env.VITE_API_URL
-      }/api/public/download/pdf/${pdfId}`;
+      }/public/download/pdf/${pdfId}`;
       console.log('Downloading from:', downloadUrl);
 
       const response = await fetch(downloadUrl);

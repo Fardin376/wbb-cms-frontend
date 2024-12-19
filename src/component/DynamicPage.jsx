@@ -123,7 +123,7 @@ const DynamicPage = () => {
         const response = await axios.get(
           `${
             import.meta.env.VITE_API_URL
-          }/api/public/pages/${encodeURIComponent(matchingPage.slug)}`
+          }/public/pages/${encodeURIComponent(matchingPage.slug)}`
         );
 
         if (response.data.success) {

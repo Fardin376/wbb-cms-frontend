@@ -1,4 +1,3 @@
-import React from "react";
 import MainFooter from "./MainFooter";
 import Copyright from "./layer/Copyright";
 import MediaFooter from "./MediaFooter";

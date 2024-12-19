@@ -79,7 +79,46 @@ GalleryDisplay.propTypes = {
 };
 
 const PDFDisplay = ({ pdfs }) => {
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+
   if (!pdfs || pdfs.length === 0) return null;
+
+  const handleDownload = async (pdfId, fileName) => {
+    if (isDownloading) return;
+
+    try {
+      setIsDownloading(true);
+      setDownloadProgress(0);
+
+      const downloadUrl = `${import.meta.env.VITE_API_URL}/public/download/pdf/${pdfId}`;
+      console.log('Downloading from:', downloadUrl);
+
+      const response = await fetch(downloadUrl);
+
+      if (!response.ok) {
+        throw new Error(`Download failed with status: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      setDownloadProgress(100);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      alert('Failed to download PDF. Please try again.');
+    } finally {
+      setIsDownloading(false);
+      setDownloadProgress(0);
+    }
+  };
 
   return (
     <div className="mb-8">
@@ -91,14 +130,13 @@ const PDFDisplay = ({ pdfs }) => {
             {pdf.description && (
               <p className="text-gray-600 mb-2">{pdf.description}</p>
             )}
-            <a
-              href={pdf.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-primary hover:underline"
+            <button
+              onClick={() => handleDownload(pdf.id, pdf.fileName)}
+              disabled={isDownloading}
+              className="text-[#008645] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Download PDF
-            </a>
+              {isDownloading ? `Downloading... ${downloadProgress}%` : 'Download PDF'}
+            </button>
           </div>
         ))}
       </div>
@@ -134,7 +172,7 @@ const PostDetails = () => {
         const response = await axios.get(
           `${
             import.meta.env.VITE_API_URL
-          }/api/public/posts/${encodeURIComponent(slug)}`
+          }/public/posts/${encodeURIComponent(slug)}`
         );
 
         if (response.data.success) {
