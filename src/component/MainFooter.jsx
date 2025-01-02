@@ -8,25 +8,23 @@ const MainFooter = () => {
   const { footerLinks, loading } = useContent();
   const { language } = useLanguage();
 
-  console.log(footerLinks, language, loading);
-
   // Filter footer links by position and status
   const filteredLinksLeft = footerLinks?.filter(
-    (link) => link.status === 'Published' && link.position === 'Left'
+    (link) => link.status === 'PUBLISHED' && link.position === 'LEFT'
   );
 
   const filteredLinksCenter = footerLinks?.filter(
-    (link) => link.status === 'Published' && link.position === 'Center'
+    (link) => link.status === 'PUBLISHED' && link.position === 'CENTER'
   );
 
   const filteredLinksRight = footerLinks?.filter(
-    (link) => link.status === 'Published' && link.position === 'Right'
+    (link) => link.status === 'PUBLISHED' && link.position === 'RIGHT'
   );
 
   // Fallback for 'Left' position if no links found
   const WeDoLinks = filteredLinksLeft?.length
     ? filteredLinksLeft.map((item) => ({
-        text: item.name[language], // Dynamic language
+        text: language === 'bn' ? item.nameBn : item.nameEn, // Dynamic language
         link: item.url,
       }))
     : [
@@ -40,7 +38,7 @@ const MainFooter = () => {
   // Fallback for 'Center' position if no links found
   const MediaCenterLinks = filteredLinksCenter?.length
     ? filteredLinksCenter.map((item) => ({
-        text: item.name[language],
+        text: language === 'bn' ? item.nameBn : item.nameEn,
         link: item.url,
       }))
     : [
@@ -54,16 +52,10 @@ const MainFooter = () => {
   // Fallback for 'Right' position if no links found
   const WBBTrustLinks = filteredLinksRight?.length
     ? filteredLinksRight.map((item) => ({
-        text: item.name[language],
+        text: language === 'bn' ? item.nameBn : item.nameEn,
         link: item.url,
       }))
-    : [
-        { text: 'Terms and Condition', link: '/' },
-        { text: 'Feedback', link: '/' },
-        { text: 'Sitemap', link: '/' },
-        { text: 'Web Admin', link: '/' },
-        { text: 'Web Mail', link: '/' },
-      ];
+    : null;
 
   const listVariants = {
     hidden: { opacity: 0, y: 50 },
@@ -143,17 +135,32 @@ const MainFooter = () => {
           whileInView="visible"
           viewport={{ once: true }}
         >
-          <p className="font-bold text-lg left-5">WBB Trust</p>
-          {WBBTrustLinks.map((item, index) => (
-            <motion.li key={index} variants={itemVariants}>
-              <Link
-                className="hover:text-[#13FF00] duration-300"
-                to={item.link}
+          <p className="font-bold text-lg left-5">Our Location</p>
+          {WBBTrustLinks ? (
+            WBBTrustLinks.map((item, index) => (
+              <a
+                key={index}
+                href={item.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-500 hover:underline"
               >
                 {item.text}
-              </Link>
-            </motion.li>
-          ))}
+              </a>
+            ))
+          ) : (
+            // Render iframe as fallback
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3651.9869229996625!2d90.35823708555779!3d23.74784573389755!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3755b8b53c5117c9%3A0xf8e065b9a4d1908d!2sWork%20for%20a%20Better%20Bangladesh%20Trust!5e0!3m2!1sen!2sbd!4v1735641700808!5m2!1sen!2sbd"
+              width="400"
+              height="300"
+              style={{ border: 0 }}
+              allowFullScreen=""
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="rounded-md shadow-md"
+            ></iframe>
+          )}
         </motion.ul>
       </Container>
     </div>

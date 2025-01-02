@@ -1,9 +1,12 @@
 import { createBrowserRouter } from 'react-router-dom';
 import RootLayout from '../component/RootLayout';
-import DynamicPage from '../component/DynamicPage';
-import Home from '../component/pages/Home';
-import PostDetails from '../component/PostDetails';
-import ViewAllPosts from '../component/layer/ViewAllPosts';
+import { Suspense, lazy } from 'react';
+
+import { DynamicPage } from '../component';
+const Home = lazy(() => import('../component/pages/Home'));
+const PostDetails = lazy(() => import('../component/PostDetails'));
+const ViewAllPosts = lazy(() => import('../component/layer/ViewAllPosts'));
+const Gallery = lazy(() => import('../component/Gallery'));
 
 export const router = createBrowserRouter([
   {
@@ -12,41 +15,108 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Home />,
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <Home />
+          </Suspense>
+        ),
       },
       {
         path: '/home',
-        element: <Home />,
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <Home />
+          </Suspense>
+        ),
       },
-
       {
         path: '/pages/:slug(*)',
-        element: <DynamicPage />,
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <DynamicPage />
+          </Suspense>
+        ),
       },
       {
         path: '/posts/:slug',
-        element: <PostDetails />,
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <PostDetails />
+          </Suspense>
+        ),
       },
       {
         path: '*',
-        element: <DynamicPage />,
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <DynamicPage />
+          </Suspense>
+        ),
       },
 
       {
         path: '/research',
-        element: <ViewAllPosts category="research" title="Research" />,
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <ViewAllPosts
+              category="research"
+              titleEn="Research"
+              titleBn="গবেষণা"
+            />
+          </Suspense>
+        ),
       },
       {
         path: '/publications',
-        element: <ViewAllPosts category="research" title="Publications" />,
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <ViewAllPosts
+              category="research"
+              titleEn="Publications"
+              titleBn="প্রকাশনা"
+            />
+          </Suspense>
+        ),
       },
       {
         path: '/news-and-articles',
-        element: <ViewAllPosts category="article" title="News and Articles" />,
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <ViewAllPosts
+              category="article"
+              titleEn="News and Articles"
+              titleBn="সংবাদ এবং নিবন্ধ"
+            />
+          </Suspense>
+        ),
       },
       {
         path: '/media-center',
-        element: <ViewAllPosts category="notice" title="Media Center" />,
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <ViewAllPosts
+              category="notice"
+              titleEn="Media Center"
+              titleBn="মিডিয়া সেন্টার"
+            />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/photo',
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <Gallery />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/video',
+        element: (
+          <Suspense fallback={<div>Loading...</div>}>
+            <Gallery />
+          </Suspense>
+        ),
       },
     ],
   },

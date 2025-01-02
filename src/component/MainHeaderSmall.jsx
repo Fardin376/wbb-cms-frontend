@@ -2,143 +2,152 @@ import { useState } from 'react';
 import Container from './layer/Container';
 import { Link } from 'react-router-dom';
 import logo from '/logo.png';
+import { FaAngleDown, FaBars } from 'react-icons/fa';
+import '../App.css';
 import { IoClose } from 'react-icons/io5';
-import { FaAngleDown, FaAngleRight } from 'react-icons/fa';
-import PropTypes from 'prop-types';
 import { useContent } from '../hooks/useContent';
 import { useLanguage } from '../hooks/useLanguage';
+import PropTypes from 'prop-types';
 
-const Li = ({ text, href, children, className, icon, onClick }) => {
+const Li = ({
+  text,
+  href,
+  children,
+  className,
+  icon,
+  onClick,
+  collapsible,
+}) => {
+  const [collapsed, setCollapsed] = useState(false);
+
+  const handleCollapse = () => {
+    setCollapsed(!collapsed);
+  };
+
   return (
-    <li
-      onClick={onClick}
-      className={`text-[13.5px] font-inter text-white relative transition-all duration-300 ${className}`}
-    >
-      <Link to={href} className="py-2 px-2.5 flex items-center gap-x-2">
+    <li className="text-base font-inter text-white relative transition-all duration-300 border-b border-gray-700">
+      <Link
+        to={href}
+        className={`flex !flex-row !items-center justify-between gap-x-4 py-3 px-5 ${className}`}
+        onClick={onClick}
+      >
         {text} {icon}
+        {collapsible && (
+          <FaAngleDown
+            onClick={(e) => {
+              e.preventDefault();
+              handleCollapse();
+            }}
+            className={`ml-2 ${collapsed ? '' : 'rotate-180'}`}
+          />
+        )}
       </Link>
-      {children}
+      {children && !collapsed && children}
     </li>
   );
 };
 
 Li.propTypes = {
   text: PropTypes.string.isRequired,
-  href: PropTypes.string.isRequired,
+  href: PropTypes.string,
   children: PropTypes.node,
   className: PropTypes.string,
   icon: PropTypes.node,
   onClick: PropTypes.func,
-};
-
-Li.defaultProps = {
-  className: '',
-  children: null,
-  icon: null,
-  onClick: () => {},
+  collapsible: PropTypes.bool,
 };
 
 const MainHeaderSmall = () => {
-  const { menus, loading } = useContent();
+  const { menus } = useContent();
   const { language } = useLanguage();
   const [menu, setMenu] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState(null);
 
-  const toggleDropdown = (dropdownName) => {
-    setActiveDropdown((prev) => (prev === dropdownName ? null : dropdownName));
-  };
+  const sortedMenus = menus.sort((a, b) => a.order - b.order);
 
-  const renderSubMenu = (children, isNested = false) => {
-    if (!children?.length) return null;
+  const parentMenus = sortedMenus.filter((item) => !item.parentId);
+
+  const renderSubMenu = (menuItem) => {
+    if (!menuItem.children || menuItem.children.length === 0) return null;
 
     return (
-      <ul
-        className={`
-        pl-4 mt-2 flex flex-col gap-y-2
-        ${isNested ? 'border-l border-gray-700' : ''}
-      `}
-      >
-        {children.map((child) => renderMenuItem(child, true))}
+      <ul className={`pl-6 `}>
+        {menuItem.children.map((child) => (
+          <Li
+            key={child.id}
+            text={language === 'en' ? child.titleEn : child.titleBn}
+            href={`/${child.slug}`}
+            // icon={
+            //   child.children && child.children.length > 0 ? (
+            //     <FaAngleDown
+            //       onClick={(e) => {
+            //         e.preventDefault();
+            //         handleSubMenuToggle(child.id);
+            //       }}
+            //       className={`ml-2 ${
+            //         openSubMenus[child.id] ? 'rotate-180' : ''
+            //       }`}
+            //     />
+            //   ) : null
+            // }
+            collapsible={child.children && child.children.length > 0}
+          >
+            {renderSubMenu(child)}
+          </Li>
+        ))}
       </ul>
     );
   };
 
-  const renderMenuItem = (menu, isChild = false) => {
-    if (!menu) return null;
-
-    const hasChildren = menu.children?.length > 0;
-    const isActive = activeDropdown === menu._id;
-
-    return (
-      <Li
-        key={menu._id}
-        text={menu.title?.[language] || menu.title?.en || ''}
-        href={menu.url || menu.slug || '/'}
-        className={`
-          ${hasChildren ? 'has-submenu' : ''} 
-          ${isActive ? 'active bg-[#303030]' : ''}
-          ${isChild ? 'hover:bg-[#303030] rounded-md w-full' : ''}
-        `}
-        icon={hasChildren ? isChild ? <FaAngleRight /> : <FaAngleDown /> : null}
-        onClick={(e) => {
-          if (hasChildren) {
-            e.preventDefault();
-            toggleDropdown(menu._id);
-          }
-        }}
-      >
-        {hasChildren && renderSubMenu(menu.children, isChild)}
-      </Li>
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="main bg-black">
-        <Container className="flex justify-between items-center px-3 py-3">
-          <div className="logo">
-            <img className="w-full" src={logo} alt="Logo" />
-          </div>
-          <div className="loading text-white">Loading menu...</div>
-        </Container>
-      </div>
-    );
-  }
-
   return (
-    <div className="main bg-black">
-      <Container className="flex justify-between items-center px-3 py-3">
-        <div className="logo">
-          <img className="w-full" src={logo} alt="Logo" />
-        </div>
-        <div
-          onClick={() => setMenu(!menu)}
-          className={`menu-icon w-10 h-10 rounded-full bg-[#252525] flex justify-center items-center cursor-pointer ${
-            menu ? 'bg-[#303030]' : ''
-          }`}
-        >
-          {menu ? (
-            <IoClose className="text-white text-2xl" />
-          ) : (
-            <div className="flex flex-col gap-y-1">
-              <div className="w-5 h-[2px] bg-white"></div>
-              <div className="w-5 h-[2px] bg-white"></div>
-              <div className="w-5 h-[2px] bg-white"></div>
-            </div>
-          )}
+    <div>
+      <Container className="bg-black flex justify-between items-center py-2 px-3 xl:px-0">
+        <Link to="/" className="logo w-1/2 sm:w-1/3">
+          <img className="w-full aspect-[335/100]" src={logo} alt={logo} />
+        </Link>
+        <div className="menu font-inter">
+          <button
+            className="text-white text-2xl"
+            onClick={() => setMenu(!menu)}
+          >
+            {menu ? <IoClose /> : <FaBars />}
+          </button>
+          <ul
+            className={`absolute top-full right-0 w-full sm:w-1/2 z-50 bg-[#252525ee] flex flex-col duration-300 overflow-y-auto scroll-y-auto scrollbar-hide ${
+              menu ? 'opacity-100 visible' : 'opacity-0 invisible'
+            }`}
+          >
+            {parentMenus.map((menuItem) => (
+              <Li
+                key={menuItem.id}
+                text={language === 'en' ? menuItem.titleEn : menuItem.titleBn}
+                href={`/${menuItem.slug}`}
+                // icon={
+                //   menuItem.children && menuItem.children.length > 0 ? (
+                //     <FaAngleDown
+                //       onClick={(e) => {
+                //         e.preventDefault();
+                //         handleSubMenuToggle(menuItem.id);
+                //       }}
+                //       className={`ml-2 ${
+                //         openSubMenus[menuItem.id] ? 'rotate-180' : ''
+                //       }`}
+                //     />
+                //   ) : null
+                // }
+                collapsible={menuItem.children && menuItem.children.length > 0}
+              >
+                {renderSubMenu(menuItem)}
+              </Li>
+            ))}
+          </ul>
+          <div
+            onClick={() => setMenu(false)}
+            className={`overlay absolute top-full left-0 w-screen h-screen bg-[#0000004d] z-40 ${
+              menu ? 'visible' : 'invisible'
+            }`}
+          ></div>
         </div>
       </Container>
-      <div
-        className={`menu-items absolute w-full bg-black transition-all duration-300 z-50 ${
-          menu
-            ? 'min-h-screen opacity-100 visible'
-            : 'h-0 opacity-0 invisible overflow-hidden'
-        }`}
-      >
-        <Container className="flex flex-col gap-y-3 py-5">
-          {Array.isArray(menus) && menus.map((menu) => renderMenuItem(menu))}
-        </Container>
-      </div>
     </div>
   );
 };

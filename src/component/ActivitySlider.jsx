@@ -152,11 +152,11 @@ const ActivitySlider = () => {
       <HeadingText text="Activities" className="px-3" />
       <Slider {...settings}>
         {featuredPosts.map((post) => (
-          <div key={post._id} className="px-2">
+          <div key={post.id} className="px-2">
             <SliderCard
               className="border-none"
               image={post.coverImg}
-              text={post.title?.[language] || post.title?.en || ''}
+              text={language === 'en' ? post.titleEn : post.titleBn}
               href={`/posts/${post.slug}`}
             />
           </div>

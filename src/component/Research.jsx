@@ -8,40 +8,43 @@ import { motion } from 'framer-motion';
 import { FaMinus, FaPlus } from 'react-icons/fa';
 import { useContent } from '../hooks/useContent';
 import { useLanguage } from '../hooks/useLanguage';
+import axios from 'axios';
 
 const Accordion = ({ id, title, text, isOpen, onToggle, pdfs }) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
 
-  const handleDownload = async (pdfId, fileName) => {
-    if (isDownloading) return;
+  const handleDownload = async (pdf) => {
+    const { id, name } = pdf;
 
     try {
-      setIsDownloading(true);
-      setDownloadProgress(0);
+      // Fallback to server download endpoint
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/public/download/pdf/${id}`, // Adjusted to match backend route
+        {
+          responseType: 'blob',
+          timeout: 60000, // Increase timeout for large files
+        }
+      );
 
-      const downloadUrl = `${
-        import.meta.env.VITE_API_URL
-      }/public/download/pdf/${pdfId}`;
-      console.log('Downloading from:', downloadUrl);
-
-      const response = await fetch(downloadUrl);
-
-      if (!response.ok) {
-        throw new Error(`Download failed with status: ${response.status}`);
+      if (!response.data) {
+        throw new Error('No data received');
       }
 
-      const blob = await response.blob();
+      // Create blob URL and trigger download
+      const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', fileName);
+      link.setAttribute('download', name);
       document.body.appendChild(link);
       link.click();
 
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      setDownloadProgress(100);
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        setDownloadProgress(100);
+      }, 100);
     } catch (error) {
       console.error('Error downloading PDF:', error);
       alert('Failed to download PDF. Please try again.');
@@ -93,16 +96,12 @@ const Accordion = ({ id, title, text, isOpen, onToggle, pdfs }) => {
             <div className="mt-4 space-y-3">
               {pdfs.map((pdf, index) => (
                 <div key={pdf.id} className="flex flex-col">
-                  {pdf.title && (
-                    <h4 className="text-lg font-semibold mb-1">{pdf.title}</h4>
+                  {pdf.name && (
+                    <h4 className="text-lg font-semibold mb-1">{pdf.name}</h4>
                   )}
-                  {pdf.description && (
-                    <p className="text-sm text-gray-600 mb-2">
-                      {pdf.description}
-                    </p>
-                  )}
+
                   <button
-                    onClick={() => handleDownload(pdf.id, pdf.fileName)}
+                    onClick={() => handleDownload(pdf)}
                     disabled={isDownloading}
                     className="px-6 py-2 bg-[#008645] text-white rounded hover:bg-[#008645]/90 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed w-fit"
                   >
@@ -142,7 +141,7 @@ Accordion.propTypes = {
     PropTypes.shape({
       id: PropTypes.string.isRequired,
       fileName: PropTypes.string.isRequired,
-      title: PropTypes.string,
+      name: PropTypes.string,
       description: PropTypes.string,
     })
   ),
@@ -150,7 +149,7 @@ Accordion.propTypes = {
 
 const Research = () => {
   const [activeAccordion, setActiveAccordion] = useState(null);
-  const { researchAndPublications, loading, error } = useContent();
+  const { researchPosts, loading, error } = useContent();
   const { language } = useLanguage();
 
   const handleToggle = (id) => {
@@ -159,14 +158,14 @@ const Research = () => {
 
   // Get post title safely
   const getPostTitle = (post) => {
-    if (!post?.title) return '';
-    return post.title[language] || post.title.en || '';
+    if (!post?.titleEn || !post?.titleBn) return '';
+    return language === 'bn' ? post.titleBn : post.titleEn;
   };
 
   // Get post content safely
   const getPostContent = (post) => {
-    if (!post?.content) return '';
-    return post.content[language] || post.content.en || '';
+    if (!post?.contentEn || !post?.contentBn) return '';
+    return language === 'bn' ? post.contentBn : post.contentEn;
   };
 
   if (loading) {
@@ -187,10 +186,7 @@ const Research = () => {
     );
   }
 
-  if (
-    !Array.isArray(researchAndPublications) ||
-    researchAndPublications.length === 0
-  ) {
+  if (!Array.isArray(researchPosts) || researchPosts.length === 0) {
     return (
       <div className="xl:pt-32 md:pt-24 pt-16 text-center">
         <HeadingText text="Research & Publication" />
@@ -210,7 +206,7 @@ const Research = () => {
           viewport={{ once: true }}
           className="leaf p-5 lg:p-0 w-full lg:w-1/2 flex flex-col xl gap-y-10 2xl:gap-y-16"
         >
-          {researchAndPublications
+          {researchPosts
             .map((post, index) => (
               <motion.div
                 key={post._id || index}
@@ -223,10 +219,10 @@ const Research = () => {
                 viewport={{ once: true }}
               >
                 <Accordion
-                  id={post._id || String(index)}
+                  id={post.id || String(index)}
                   title={getPostTitle(post)}
                   text={getPostContent(post)}
-                  isOpen={activeAccordion === (post._id || String(index))}
+                  isOpen={activeAccordion === (post.id || String(index))}
                   onToggle={handleToggle}
                   pdfs={post.pdfs}
                 />
@@ -238,7 +234,7 @@ const Research = () => {
             whileInView={{ opacity: 1, y: 0 }}
             transition={{
               duration: 0.5,
-              delay: 0.5 + researchAndPublications.length * 0.3,
+              delay: 0.5 + researchPosts.length * 0.3,
             }}
             viewport={{ once: true }}
           >

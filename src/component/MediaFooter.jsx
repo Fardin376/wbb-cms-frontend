@@ -1,48 +1,66 @@
-import React from "react";
 import {
   FaFacebookF,
   FaInstagram,
   FaLinkedinIn,
   FaTwitter,
   FaYoutube,
-} from "react-icons/fa";
-import Container from "./layer/Container";
-import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+} from 'react-icons/fa';
+import Container from './layer/Container';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { useContent } from '../hooks/useContent';
+import { useLanguage } from '../hooks/useLanguage';
 
 const MediaFooter = () => {
-  const links = [
+  const { socialLinks } = useContent(); // Fetch the response containing social links
+  const { language } = useLanguage(); // Replace this with your language context or state
+
+  // Base links with icons and colors
+  const baseLinks = [
     {
-      name: "Twitter",
-      color: "bg-[#70C2E8]",
+      name: 'Twitter',
+      color: 'bg-[#70C2E8]',
       icon: <FaTwitter />,
-      link: "/",
     },
     {
-      name: "Facebook",
-      color: "bg-[#4E75B7]",
+      name: 'Facebook',
+      color: 'bg-[#4E75B7]',
       icon: <FaFacebookF />,
-      link: "/",
     },
     {
-      name: "LinkedIn",
-      color: "bg-[#127EBF]",
+      name: 'LinkedIn',
+      color: 'bg-[#127EBF]',
       icon: <FaLinkedinIn />,
-      link: "/",
     },
     {
-      name: "YouTube",
-      color: "bg-[#D95F48]",
+      name: 'YouTube',
+      color: 'bg-[#D95F48]',
       icon: <FaYoutube />,
-      link: "/",
     },
     {
-      name: "Instagram",
-      color: "bg-[#E4405F]",
+      name: 'Instagram',
+      color: 'bg-[#E4405F]',
       icon: <FaInstagram />,
-      link: "/",
     },
   ];
+
+  // Match baseLinks with socialLinks from the response
+  const matchedLinks = baseLinks.map((baseLink) => {
+    const match = socialLinks?.find(
+      (link) => link.nameEn.toLowerCase() === baseLink.name.toLowerCase()
+    );
+
+    if (!match) {
+      return baseLink;
+    }
+
+    return {
+      ...baseLink,
+      name: language === 'en' ? match?.nameEn : match?.nameBn, // Use nameEn or nameBn based on language
+      link: match?.url || '/', // Use the URL from the response
+    };
+  });
+
   const listVariants = {
     hidden: { opacity: 0, y: 50 },
     visible: {
@@ -70,7 +88,7 @@ const MediaFooter = () => {
           whileInView="visible"
           viewport={{ once: true }}
         >
-          {links.map((item, index) => (
+          {matchedLinks.map((item, index) => (
             <motion.li
               key={index}
               variants={itemVariants}
@@ -91,9 +109,7 @@ const MediaFooter = () => {
                 >
                   {item.icon}
                 </motion.div>
-                <motion.p
-                  className="group-hover:text-[#127EBF] transition-colors duration-300"
-                >
+                <motion.p className="group-hover:text-[#127EBF] transition-colors duration-300">
                   {item.name}
                 </motion.p>
               </Link>

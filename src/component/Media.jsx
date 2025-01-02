@@ -66,15 +66,12 @@ const Media = () => {
           viewport={{ once: true }}
         >
           <motion.div
-            className="text flex flex-col gap-y-5"
+            className="flex flex-col gap-y-5"
             variants={headerVariants}
           >
             <HeadingText text="Media Center" className="text-white" />
+            <MediaLink itemVariants={itemVariants} />
           </motion.div>
-
-          <MediaLink itemVariants={itemVariants} />
-
-          
         </motion.div>
       </Container>
     </div>

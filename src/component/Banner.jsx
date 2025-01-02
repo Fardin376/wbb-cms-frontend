@@ -1,41 +1,78 @@
-import React from "react";
-import Slider from "react-slick";
-import slider1 from "../assets/slider1.png";
-import slider2 from "../assets/slider2.png";
-import slider3 from "../assets/slider3.png";
-import "../App.css";
+import Slider from 'react-slick';
+import { useContent } from '../hooks/useContent';
+import { useLanguage } from '../hooks/useLanguage';
+import '../App.css';
 
 const Banner = () => {
+  // Fetch banners and handle loading/error states
+  const { banners, isLoading, error } = useContent();
+  const { language } = useLanguage();
+
   const settings = {
     dots: false,
     arrows: false,
     infinite: true,
-    speed: 500,
     slidesToShow: 1,
     slidesToScroll: 1,
     autoplay: true,
-    speed: 1000,
+    speed: 2000,
     fade: true,
     autoplaySpeed: 2500,
-    cssEase: "linear",
+    cssEase: 'linear',
   };
 
-  const slides = [
-    { id: 1, image: slider1 },
-    { id: 2, image: slider2 },
-    { id: 3, image: slider3 }
-  ];
+  // Handle loading state
+  if (isLoading) {
+    return (
+      <div className="w-screen h-[500px] flex justify-center items-center">
+        Loading...
+      </div>
+    );
+  }
+
+  // Handle error state
+  if (error) {
+    return (
+      <div className="w-screen h-[500px] flex justify-center items-center">
+        Error loading banners
+      </div>
+    );
+  }
+
+  // Handle empty banners array
+  if (!banners || banners.length === 0) {
+    return (
+      <div className="w-screen h-[500px] flex justify-center items-center">
+        No banners available
+      </div>
+    );
+  }
+
+  const getLocalizedText = (en, bn) => {
+    return language === 'en' ? en : bn;
+  };
 
   return (
     <div className="relative w-screen">
       <Slider {...settings}>
-        {slides.map((slide) => (
-          <div key={slide.id} className="div w-screen aspect-[1920/920]">
-            <img
-              className="w-full h-full object-cover object-center"
-              src={slide.image}
-              alt={`Slide ${slide.id}`}
-            />
+        {banners.map((banner) => (
+          <div
+            key={banner.id}
+            className="relative w-screen h-[500px] flex justify-center items-center"
+          >
+            {/* Overlay for better text visibility */}
+            <div className="absolute inset-0 bg-black bg-opacity-40">
+              <img src={banner.url} alt="" />
+            </div>
+
+            <div className="relative z-10 text-center text-white px-4 top-[20%] right-[20%]">
+              <h2 className="text-3xl md:text-5xl font-bold transition-transform duration-500">
+                {getLocalizedText(banner.titleEn, banner.titleBn)}
+              </h2>
+              <p className="text-sm md:text-lg mt-3 transition-opacity duration-500">
+                {getLocalizedText(banner.descriptionEn, banner.descriptionBn)}
+              </p>
+            </div>
           </div>
         ))}
       </Slider>

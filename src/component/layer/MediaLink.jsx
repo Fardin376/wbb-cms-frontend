@@ -26,9 +26,9 @@ const MediaLink = ({ itemVariants }) => {
   // Transform posts into media links
   const mediaLinks = noticePosts
     .map((post) => ({
-      news: post.title[language] || post.title.en || 'Untitled',
+      news: language === 'bn' ? post.titleBn : post.titleEn || 'Untitled',
       date: formatDate(post.createdAt),
-      link: `/posts/${post.slug || post._id}`,
+      link: `/posts/${post.slug || post.id}`,
       _id: post._id,
     }))
     .slice(0, 4); // Limit to 4 items
@@ -50,11 +50,12 @@ const MediaLink = ({ itemVariants }) => {
   return (
     <div className="headlines flex flex-col gap-y-8">
       {mediaLinks.map((item) => (
-        <Link to={item.link} key={item._id}>
+        <Link to={item.link} key={item.id}>
           <motion.div
             className="font-inter text-white flex flex-col gap-y-2"
             variants={itemVariants}
             whileHover={{ scale: 1.05, translateX: -10 }}
+            key={item.id}
           >
             <h3 className="font-bold text-lg leading-5">{item.news}</h3>
             <p className="text-sm leading-4">{item.date}</p>

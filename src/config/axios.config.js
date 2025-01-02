@@ -1,13 +1,32 @@
-import axios from 'axios';
+// import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL;
+// const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-const api = axios.create({
-  baseURL,
-  withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+// export const fetchPublicContent = async (endpoint) => {
+//   try {
+//     console.log(`Fetching from: ${API_BASE_URL}/public/${endpoint}`);
 
-export default api;
+//     const response = await axios.get(`${API_BASE_URL}/public/${endpoint}`);
+
+//     console.log(`Response for ${endpoint}:`, response.data);
+
+//     return response.data;
+//   } catch (error) {
+//     console.error(`Error fetching ${endpoint}:`, error);
+//     return {
+//       success: false,
+//       message: error.message,
+//       [endpoint]: [],
+//     };
+//   }
+// };
+
+// const instance = axios.create({
+//   baseURL: `${API_BASE_URL}/api`,
+//   timeout: 30000,
+//   headers: {
+//     'Content-Type': 'application/json',
+//   },
+// });
+
+// export default instance;

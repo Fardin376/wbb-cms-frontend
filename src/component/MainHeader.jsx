@@ -43,8 +43,22 @@ Li.defaultProps = {
 };
 
 const MainHeader = () => {
-  const { menus, loading } = useContent();
+  const { menus } = useContent();
   const { language } = useLanguage();
+
+  // Function to sort menu items by 'order' property
+  const sortMenus = (menuArray) => {
+    return menuArray
+      .slice() // Create a shallow copy to avoid mutating the original array
+      .sort((a, b) => a.order - b.order)
+      .map((menu) => ({
+        ...menu,
+        children: menu.children ? sortMenus(menu.children) : [],
+      }));
+  };
+
+  // Sort menus and their children
+  const sortedMenus = menus ? sortMenus(menus) : [];
 
   const renderSubMenu = (children, isNested = false) => {
     if (!children?.length) return null;
@@ -69,8 +83,8 @@ const MainHeader = () => {
 
     return (
       <Li
-        key={menu._id}
-        text={menu.title?.[language] || menu.title?.en || ''}
+        key={menu.id}
+        text={language === 'en' ? menu.titleEn : menu.titleBn}
         href={menu.url || menu.slug || '#'}
         className={`
           ${hasChildren ? 'has-submenu' : ''} 
@@ -89,28 +103,29 @@ const MainHeader = () => {
     );
   };
 
-  if (loading) {
-    return (
-      <div className="main bg-black">
-        <Container className="flex justify-between items-center px-3 py-3">
-          <div className="logo">
-            <img className="w-full" src={logo} alt="Logo" />
-          </div>
-          <div className="loading text-white">Loading menu...</div>
-        </Container>
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="main bg-black">
+  //       <Container className="flex justify-between items-center px-3 py-3">
+  //         <div className="logo">
+  //           <img className="w-full" src={logo} alt="Logo" />
+  //         </div>
+  //         <div className="loading text-white">Loading menu...</div>
+  //       </Container>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="main bg-black">
       <Container className="flex justify-between items-center px-3 py-3">
-        <div className="logo">
+        <Link className="logo" to="/">
           <img className="w-full" src={logo} alt="Logo" />
-        </div>
+        </Link>
         <nav className="menu morph font-inter">
           <ul className="xl:flex gap-x-1">
-            {Array.isArray(menus) && menus.map((menu) => renderMenuItem(menu))}
+            {Array.isArray(sortedMenus) &&
+              sortedMenus.map((menu) => renderMenuItem(menu))}
           </ul>
         </nav>
       </Container>

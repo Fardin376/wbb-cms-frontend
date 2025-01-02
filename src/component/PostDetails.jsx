@@ -9,6 +9,20 @@ import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import defaultImage from '../assets/default-post.jpg';
 import PropTypes from 'prop-types';
+import Slider from 'react-slick';
+import SliderCard from './layer/SliderCard';
+import HeadingText from './layer/HeadingText';
+
+const preprocessContent = (content) => {
+  return content.replace(/class="(.*?)"/g, (match, classes) => {
+    // Remove 'ql-' prefix and return updated class string
+    const updatedClasses = classes
+      .split(' ')
+      .map((cls) => cls.replace(/^ql-/, ''))
+      .join(' ');
+    return `class="${updatedClasses}"`;
+  });
+};
 
 const LoadingSpinner = () => (
   <Container className="min-h-screen flex items-center justify-center">
@@ -18,11 +32,13 @@ const LoadingSpinner = () => (
 
 const SafeHTML = ({ content }) => {
   try {
+    const processedContent = preprocessContent(content);
+
     return (
       <div
-        className="prose max-w-none mb-16"
+        className="prose max-w-none mb-16 flex flex-col"
         dangerouslySetInnerHTML={{
-          __html: content,
+          __html: processedContent,
         }}
       />
     );
@@ -31,7 +47,6 @@ const SafeHTML = ({ content }) => {
     return <div className="text-red-600">Error rendering content</div>;
   }
 };
-
 SafeHTML.propTypes = {
   content: PropTypes.string.isRequired,
 };
@@ -82,25 +97,33 @@ const PDFDisplay = ({ pdfs }) => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
 
-  if (!pdfs || pdfs.length === 0) return null;
+  // Log the pdfs to check if they are being passed correctly
+  console.log('PDFs:', pdfs);
 
-  const handleDownload = async (pdfId, fileName) => {
-    if (isDownloading) return;
+  // If no PDFs are passed or the array is empty, show a fallback message
+  if (!pdfs || pdfs.length === 0) return <p>No documents available.</p>;
+
+  const handleDownload = async (pdfs) => {
+    const { id, fileName } = pdfs;
+
+    console.log(fileName);
 
     try {
-      setIsDownloading(true);
-      setDownloadProgress(0);
+      // Fallback to server download endpoint
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL}/public/download/pdf/${id}`, // Adjusted to match backend route
+        {
+          responseType: 'blob',
+          timeout: 60000, // Increase timeout for large files
+        }
+      );
 
-      const downloadUrl = `${import.meta.env.VITE_API_URL}/public/download/pdf/${pdfId}`;
-      console.log('Downloading from:', downloadUrl);
-
-      const response = await fetch(downloadUrl);
-
-      if (!response.ok) {
-        throw new Error(`Download failed with status: ${response.status}`);
+      if (!response.data) {
+        throw new Error('No data received');
       }
 
-      const blob = await response.blob();
+      // Create blob URL and trigger download
+      const blob = new Blob([response.data], { type: 'application/pdf' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -108,9 +131,11 @@ const PDFDisplay = ({ pdfs }) => {
       document.body.appendChild(link);
       link.click();
 
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      setDownloadProgress(100);
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        setDownloadProgress(100);
+      }, 100);
     } catch (error) {
       console.error('Error downloading PDF:', error);
       alert('Failed to download PDF. Please try again.');
@@ -126,16 +151,15 @@ const PDFDisplay = ({ pdfs }) => {
       <div className="space-y-4">
         {pdfs.map((pdf) => (
           <div key={pdf.id} className="border p-4 rounded-lg">
-            <h3 className="font-semibold mb-2">{pdf.title}</h3>
-            {pdf.description && (
-              <p className="text-gray-600 mb-2">{pdf.description}</p>
-            )}
+            <h3 className="font-semibold mb-2">{pdf.fileName}</h3>
             <button
-              onClick={() => handleDownload(pdf.id, pdf.fileName)}
+              onClick={() => handleDownload(pdf)}
               disabled={isDownloading}
               className="text-[#008645] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isDownloading ? `Downloading... ${downloadProgress}%` : 'Download PDF'}
+              {isDownloading
+                ? `Downloading... ${downloadProgress}%`
+                : 'Download PDF'}
             </button>
           </div>
         ))}
@@ -159,53 +183,146 @@ PDFDisplay.propTypes = {
 const PostDetails = () => {
   const { slug } = useParams();
   const { language } = useLanguage();
-  const { posts } = useContent();
+  const { posts, categories } = useContent();
   const [post, setPost] = useState(null);
   const [relatedPosts, setRelatedPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  let [active, setActive] = useState(0);
+
+  let settings = {
+    dots: false,
+    arrows: false,
+    infinite: true,
+    autoplay: true,
+    className: 'center',
+    centerMode: true,
+    centerPadding: '400px',
+    speed: 2000,
+    autoplaySpeed: 7500,
+    vertical: false,
+    adaptiveHeight: true,
+    slidesToShow: 3,
+    slidesToScroll: 1,
+    appendDots: (dots) => (
+      <div className="bg-none flex justify-center w-full">
+        <ul className="flex gap-x-3 md:gap-x-5 py-5 md:py-8 mx-auto w-full justify-center">
+          {dots}
+        </ul>
+      </div>
+    ),
+    customPaging: (i) => (
+      <div
+        className={` w-8 md:w-20 h-2 md:h-4  rounded-full text-transparent border md:border-2 ${
+          active == i ? '  bg-primary ' : '  bg-primary/30 '
+        } `}
+      >
+        {i + 1}
+      </div>
+    ),
+    beforeChange: (a, b) => {
+      setActive(b);
+    },
+    responsive: [
+      {
+        breakpoint: 1500,
+        settings: {
+          dots: false,
+          arrows: false,
+          slidesToShow: 4,
+          slidesToScroll: 1,
+          infinite: true,
+          centerMode: false,
+        },
+      },
+      {
+        breakpoint: 1280,
+        settings: {
+          dots: false,
+          arrows: false,
+          slidesToShow: 3,
+          slidesToScroll: 1,
+          infinite: true,
+          className: 'center',
+          centerMode: true,
+          centerPadding: '80px',
+        },
+      },
+      {
+        breakpoint: 1024,
+        settings: {
+          arrows: false,
+          slidesToShow: 2,
+          slidesToScroll: 1,
+          infinite: true,
+          className: 'center',
+          centerMode: true,
+          centerPadding: '80px',
+        },
+      },
+      {
+        breakpoint: 768,
+        settings: {
+          arrows: false,
+          slidesToShow: 2,
+          slidesToScroll: 2,
+          className: 'center',
+          centerMode: true,
+          centerPadding: '30px',
+        },
+      },
+      {
+        breakpoint: 763,
+        settings: {
+          arrows: false,
+          slidesToShow: 2,
+          slidesToScroll: 2,
+          className: 'center',
+          centerMode: true,
+          centerPadding: '20px',
+        },
+      },
+      {
+        breakpoint: 414,
+        settings: {
+          arrows: false,
+          slidesToShow: 1,
+          slidesToScroll: 3,
+          className: 'center',
+          centerMode: true,
+          centerPadding: '20px',
+        },
+      },
+    ],
+  };
+
   useEffect(() => {
     const fetchPost = async () => {
       try {
         setLoading(true);
+
         const response = await axios.get(
-          `${
-            import.meta.env.VITE_API_URL
-          }/public/posts/${encodeURIComponent(slug)}`
+          `${import.meta.env.VITE_API_URL}/public/posts/${slug}`
         );
 
-        if (response.data.success) {
-          const fetchedPost = response.data.post;
+        if (response.data.success && response.data.post) {
+          const fetchedPost = response.data.post; // Adjust to match API response structure
           setPost(fetchedPost);
 
-          // Define category groups
-          const categoryGroups = {
-            news: ['news', 'articles'],
-            articles: ['news', 'articles'],
-            research: ['research', 'publications'],
-            publications: ['research', 'publications'],
-            others: ['others'],
-          };
+          const currentCategory = categories.find(
+            (cat) => cat.id === fetchedPost.categoryId
+          );
 
-          // Get the group for the current post's category
-          const currentCategory = fetchedPost.category?.type;
-          const relatedCategories = categoryGroups[currentCategory] || [
-            'others',
-          ];
-
-          // Find related posts
-          const related = posts
-            .filter((p) => {
-              const isNotCurrentPost = p._id !== fetchedPost._id;
-              const isInRelatedCategory = relatedCategories.includes(
-                p.category?.type
-              );
-
-              return isNotCurrentPost && isInRelatedCategory;
-            })
-            .sort(() => Math.random() - 0.5) // Randomize the order
-            .slice(0, 3);
+          const related =
+            posts
+              ?.filter(
+                (p) =>
+                  p.id !== fetchedPost.id &&
+                  p.categoryId === currentCategory?.id
+              )
+              ?.sort(() => Math.random() - 0.5)
+              ?.slice(0, 3) || [];
 
           setRelatedPosts(related);
           setError(null);
@@ -213,8 +330,8 @@ const PostDetails = () => {
           throw new Error(response.data.message || 'Post not found');
         }
       } catch (err) {
-        console.error('Error fetching post:', err);
-        setError(err.message);
+        console.error('Error fetching post:', err.message);
+        setError(err.message || 'Error fetching post');
       } finally {
         setLoading(false);
       }
@@ -257,9 +374,9 @@ const PostDetails = () => {
     >
       <Container className="xl:pt-25 md:pt-10 px-3 2xl:px-0">
         {/* Post Header */}
-        <div className="mb-8">
+        <div className="mb-4">
           <h1 className="text-3xl md:text-4xl font-bold mb-4">
-            {post.title?.[language] || post.title?.en}
+            {language === 'en' ? post.titleEn : post.titleBn}
           </h1>
           <div className="text-gray-600 text-sm">
             {format(new Date(post.createdAt), 'MMMM dd, yyyy')}
@@ -267,60 +384,51 @@ const PostDetails = () => {
         </div>
 
         {/* Post Cover Image */}
-        {post.coverImg && (
-          <div className="mb-8">
+        {/* {post.coverImage && (
+          <div className="mb-8 flex justify-center">
             <img
-              src={post.coverImg}
-              alt={post.title?.[language] || post.title?.en}
+              height="400"
+              width="800"
+              src={post.coverImage}
+              alt={language === 'en' ? post.titleEn : post.titleBn}
               className="w-full h-[400px] object-contain rounded-lg"
+              style={{ width: '800px', height: '400px' }}
               onError={(e) => {
                 console.warn(`Failed to load image: ${post.coverImg}`);
                 e.target.src = defaultImage;
               }}
             />
           </div>
-        )}
+        )} */}
 
         {/* Post Content */}
-        <SafeHTML content={post.content?.[language] || post.content?.en} />
+        <SafeHTML
+          content={language === 'en' ? post.contentEn : post.contentBn}
+        />
 
         {/* PDFs Display */}
         <PDFDisplay pdfs={post.pdfs} />
 
         {/* Related Posts */}
-        {relatedPosts.length > 0 && (
-          <Container className="py-2">
-            <h3 className="text-2xl font-bold mb-4">Related Content</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {relatedPosts.map((relatedPost) => (
-                <div key={relatedPost._id} className="border p-4 rounded-lg">
-                  <div className="mb-4 h-24 overflow-hidden rounded-lg">
-                    <img
-                      src={relatedPost.coverImg || defaultImage}
-                      alt={relatedPost.title[language] || relatedPost.title.en}
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        console.warn(
-                          `Failed to load image: ${relatedPost.coverImg}`
-                        );
-                        e.target.src = defaultImage;
-                      }}
-                    />
-                  </div>
-                  <h3 className="font-bold text-lg mb-2">
-                    {relatedPost.title[language] || relatedPost.title.en}
-                  </h3>
-                  <CustomBtn
-                    text="Read More"
-                    href={`/posts/${relatedPost.slug}`}
-                    className="mt-2 text-sm px-2"
-                  />
-                </div>
-              ))}
-            </div>
-          </Container>
-        )}
+        <HeadingText
+          className="text-2xl font-bold m-4"
+          text="Related Content"
+        />
       </Container>
+      {/* Related Posts */}
+      <Slider {...settings}>
+        {relatedPosts.length > 0 &&
+          relatedPosts.map((post) => (
+            <div key={post.id} className="px-2 slider-container">
+              <SliderCard
+                className="border-none"
+                image={post.coverImage}
+                text={language === 'en' ? post.titleEn : post.titleBn}
+                href={`/posts/${post.slug}`}
+              />
+            </div>
+          ))}
+      </Slider>
     </motion.div>
   );
 };

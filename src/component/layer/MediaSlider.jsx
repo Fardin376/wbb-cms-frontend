@@ -9,10 +9,10 @@ import { useLanguage } from '../../hooks/useLanguage';
 function SampleNextArrow({ className, onClick }) {
   return (
     <div
-      className={`absolute bottom-full right-0 -translate-y-full text-primary ${className}`}
+      className={`absolute bottom-full right-0 -translate-y-full text-primary  ${className}`}
       onClick={onClick}
     >
-      <FaArrowRightLong className="text-3xl" />
+      <FaArrowRightLong className="text-3xl text-[#008645]" />
     </div>
   );
 }
@@ -23,7 +23,7 @@ function SamplePrevArrow({ className, onClick }) {
       className={`absolute bottom-full right-6 -translate-x-full -translate-y-full text-primary ${className}`}
       onClick={onClick}
     >
-      <FaArrowLeftLong className="text-3xl" />
+      <FaArrowLeftLong className="text-3xl text-[#008645]" />
     </div>
   );
 }
@@ -44,8 +44,8 @@ const MediaSlider = () => {
 
   // Get post title based on language
   const getPostTitle = (post) => {
-    if (!post?.title) return '';
-    return post.title[language] || post.title.en || '';
+    if (!post?.titleEn || !post?.titleBn) return '';
+    return language === 'bn' ? post.titleBn : post.titleEn;
   };
 
   let settings = {

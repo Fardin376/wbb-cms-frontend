@@ -9,6 +9,8 @@ import { motion } from 'framer-motion';
 import { useContent } from '../hooks/useContent';
 import PropTypes from 'prop-types';
 import Home from './pages/Home';
+import HeadingText from './layer/HeadingText';
+import pageHeaderImage from '../assets/pageHeaderImg.png';
 
 const NotFoundPage = () => (
   // <Container className="min-h-screen flex items-center justify-center">
@@ -121,9 +123,9 @@ const DynamicPage = () => {
 
         // Use the matched page's slug for the API call
         const response = await axios.get(
-          `${
-            import.meta.env.VITE_API_URL
-          }/public/pages/${encodeURIComponent(matchingPage.slug)}`
+          `${import.meta.env.VITE_API_URL}/public/pages/${encodeURIComponent(
+            matchingPage.slug
+          )}`
         );
 
         if (response.data.success) {
@@ -131,11 +133,11 @@ const DynamicPage = () => {
           setPageData(fetchedPage);
 
           // Debug logs for related posts
-          console.log('Fetched page ID:', fetchedPage._id);
+          console.log('Fetched page ID:', fetchedPage.id);
           console.log('Available posts:', posts);
 
           // Enhanced related posts logic
-          if (fetchedPage._id && posts.length > 0) {
+          if (fetchedPage.id && posts.length > 0) {
             const pageRelatedPosts = posts.filter((post) => {
               // Debug log for each post's pages array
               console.log('Post pages array:', post.pages);
@@ -143,7 +145,7 @@ const DynamicPage = () => {
               // Check if post.pages exists and includes a page object with matching ID
               return (
                 Array.isArray(post.pages) &&
-                post.pages.some((page) => page._id === fetchedPage._id)
+                post.pages.some((page) => page.id === fetchedPage.id)
               );
             });
 
@@ -151,7 +153,7 @@ const DynamicPage = () => {
             setRelatedPosts(pageRelatedPosts);
           } else {
             console.log('No page ID or posts available:', {
-              pageId: fetchedPage._id,
+              pageId: fetchedPage.id,
               postsLength: posts.length,
             });
           }
@@ -208,7 +210,15 @@ const DynamicPage = () => {
 
   let templateContent;
   try {
-    const rawContent = JSON.parse(pageData?.template[language]?.content);
+    const content = pageData?.template?.[language]?.content;
+
+    if (!content) {
+      throw new Error('Content is undefined');
+    }
+
+    // Check if the content is already a string or if it's JSON
+    const rawContent =
+      typeof content === 'string' ? JSON.parse(content) : content;
 
     // Process assets first
     const assets = rawContent.assets || [];
@@ -249,6 +259,18 @@ const DynamicPage = () => {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
+      <img
+        src={pageHeaderImage}
+        alt=""
+        className="absolute opacity-70 h-14 w-full"
+      />
+
+      <HeadingText
+        text={`WBB Trust / ${
+          language === 'bn' ? pageData.titleBn : pageData.titleEn
+        }`}
+        className="mb-8 text-xl py-2 font-extrabold text-[#ffffff] relative"
+      />
       <Container className="xl:pt-10 md:pt-10 px-3 2xl:px-0">
         <div
           className="page-content"
@@ -262,20 +284,23 @@ const DynamicPage = () => {
 
       {relatedPosts.length > 0 && (
         <Container className="py-16">
-          <h2 className="text-2xl font-bold mb-8">Related Content</h2>
+          <HeadingText
+            className="text-2xl font-bold mb-8"
+            text="Related Content"
+          />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {relatedPosts.map((post) => (
               <div
-                key={post._id}
+                key={post.id}
                 className="border p-4 rounded-lg flex flex-col justify-between"
               >
                 <h3 className="font-bold mb-2">
-                  {post.title[language] || post.title.en}
+                  {language === 'en' ? post.titleEn : post.titleBn}
                 </h3>
                 <CustomBtn
                   text={language === 'en' ? 'Read More' : 'বিস্তারিত পড়ুন'}
                   href={`/posts/${post.slug}`}
-                  className="mt-4 w-[50%]"
+                  className="mt-4 w-[50%] p-2"
                 />
               </div>
             ))}

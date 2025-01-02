@@ -21,14 +21,16 @@ const History = () => {
   // Parse and render template content
   try {
     if (homePageData?.template?.[language]?.content) {
-      const rawContent = JSON.parse(homePageData.template[language].content);
+      const rawContent =
+        typeof homePageData.template[language].content !== 'string'
+          ? homePageData.template[language].content
+          : JSON.parse(homePageData.template[language].content);
 
       // Remove the template title and clean up the HTML
       let cleanHtml = rawContent.html || '';
       cleanHtml = cleanHtml.replace('Landing Page Template', '');
       // Also remove any empty lines that might be left
       cleanHtml = cleanHtml.replace(/^\s*[\r\n]/gm, '');
-
       const templateContent = {
         html: cleanHtml,
         css: rawContent.css || '',
@@ -53,6 +55,7 @@ const History = () => {
                 whileInView={{ opacity: 1 }}
                 transition={{ duration: 0.7, ease: 'easeInOut', delay: 0.1 }}
               >
+                <style>{templateContent.css}</style>
                 <motion.div
                   initial={{ opacity: 0, y: 100 }}
                   whileInView={{ opacity: 1, y: 0 }}
@@ -63,7 +66,6 @@ const History = () => {
                 />
               </motion.div>
             </motion.div>
-            {templateContent.css && <style>{templateContent.css}</style>}
           </Container>
         </motion.div>
       );

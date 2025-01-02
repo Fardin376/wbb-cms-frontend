@@ -1,6 +1,6 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
-import { fetchPublicContent } from '../utils/api';
+import { fetchPublicContent } from '../utils/axios.config';
 
 export const ContentContext = createContext();
 
@@ -12,11 +12,13 @@ export const ContentProvider = ({ children }) => {
   const [noticePosts, setNoticePosts] = useState([]);
   const [pages, setPages] = useState([]);
   const [menus, setMenus] = useState([]);
-  const [footerLinks, setFooterLinks] = useState([])
+  const [footerLinks, setFooterLinks] = useState([]);
+  const [socialLinks, setSocialLinks] = useState([]);
+  const [banners, setBanners] = useState([]);
+  const [gallery, setGallery] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [researchAndPublications, setResearchAndPublications] = useState([]);
-
   const [cache, setCache] = useState({
     timestamp: null,
     data: null,
@@ -24,10 +26,17 @@ export const ContentProvider = ({ children }) => {
 
   const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-  const processPost = useCallback(
-    (post) => ({
+  const CATEGORY_MAPPING = {
+    research: ['research', 'publications'],
+    articles: ['articles', 'news'],
+    notices: ['other'],
+  };
+
+  const processPost = useCallback((post) => {
+    const isValidDate = (date) => !isNaN(Date.parse(date));
+
+    return {
       ...post,
-      coverImg: post.coverImg || null,
       category: post.category || null,
       pages: Array.isArray(post.pages) ? post.pages : [],
       pdfs: Array.isArray(post.pdfs)
@@ -36,114 +45,104 @@ export const ContentProvider = ({ children }) => {
             url: pdf.url || `/public/download/pdf/${pdf.id}`,
           }))
         : [],
-      createdAt: post.createdAt
+      createdAt: isValidDate(post.createdAt)
         ? new Date(post.createdAt).toISOString()
         : new Date().toISOString(),
       slug: post.slug || '',
-      title: {
-        en: post.title?.en || '',
-        bn: post.title?.bn || '',
-      },
-      content: {
-        en: post.content?.en || '',
-        bn: post.content?.bn || '',
-      },
-    }),
-    []
-  );
-  
+    };
+  }, []);
 
-  const categorizePost = useCallback((post) => {
-    const type = post?.category?.type?.toLowerCase();
+  const categorizePost = useCallback((post, categories) => {
+    const postCategory = categories.find((cat) => cat.id === post?.categoryId);
+    const type = postCategory?.type?.toLowerCase();
     return {
       isFeatured: !!post.isFeatured,
-      isResearchOrPublication: ['research', 'publications'].includes(type),
-      isArticleOrNews: ['articles', 'news'].includes(type),
-      isNotice: ['other'].includes(type),
+      isResearchOrPublication:
+        CATEGORY_MAPPING.research.includes(type) || false,
+      isArticleOrNews: CATEGORY_MAPPING.articles.includes(type) || false,
+      isNotice: CATEGORY_MAPPING.notices.includes(type) || false,
     };
   }, []);
 
   const fetchContent = useCallback(async () => {
     try {
-      // Check cache first
-      if (cache && Date.now() - cache.timestamp < CACHE_DURATION) {
-        const { posts, pages, menus } = cache.data;
-        setPosts(posts);
-        setPages(pages);
-        setMenus(menus);
-        setLoading(false);
-        return;
-      }
-
-      const [postsRes, pagesRes, menusRes, footerRes] = await Promise.all([
-        fetchPublicContent('posts'),
+      let processedPosts = [];
+      const [
+        postsRes,
+        pagesRes,
+        menusRes,
+        footerRes,
+        categoryRes,
+        socialRes,
+        bannerRes,
+        galleryRes,
+      ] = await Promise.all([
+        fetchPublicContent('posts/details'),
         fetchPublicContent('pages'),
         fetchPublicContent('menu'),
-        fetchPublicContent('all-footer-links'),
+        fetchPublicContent('footer-links'),
+        fetchPublicContent('categories'),
+        fetchPublicContent('social-links'),
+        fetchPublicContent('banners'),
+        fetchPublicContent('images'),
       ]);
 
-      console.log('Footer API Response:', footerRes); // Debug response
+      if (postsRes.success) {
+        const processedPosts = postsRes.posts.map(processPost);
 
-      // Initialize variables at a higher scope
-      let processedPosts = [];
-      let validPages = [];
-      let validMenus = [];
-
-      if (postsRes.success && postsRes.posts) {
-        // Debug log raw posts data
-        console.log('Raw posts data:', postsRes.posts);
-
-        processedPosts = postsRes.posts.map(processPost);
-
-        // Debug log processed posts
-        console.log(
-          'Processed posts with pages:',
-          processedPosts.map((p) => ({
-            id: p._id,
-            title: p.title,
-            pages: p.pages,
-          }))
-        );
-
-        // Categorize posts
+        // Categorize posts dynamically
         const categorizedPosts = processedPosts.reduce(
           (acc, post) => {
-            const categories = categorizePost(post);
-
+            const categories = categorizePost(post, categoryRes.categories);
             if (categories.isFeatured) acc.featured.push(post);
-            if (categories.isResearchOrPublication) {
-              acc.research.push(post);
-              acc.researchAndPubs.push(post);
-            }
+            if (categories.isResearchOrPublication) acc.research.push(post);
             if (categories.isArticleOrNews) acc.articles.push(post);
             if (categories.isNotice) acc.notices.push(post);
-
             return acc;
           },
-          {
-            featured: [],
-            research: [],
-            researchAndPubs: [],
-            articles: [],
-            notices: [],
-          }
+          { featured: [], research: [], articles: [], notices: [] }
         );
-
-        if (Array.isArray(footerRes.footers)) {
-          setFooterLinks(footerRes.footers);
-          console.log('Footer links updated:', footerRes.footers);
-        } else {
-          console.error('Invalid footer response:', footerRes);
-        }
 
         setPosts(processedPosts);
         setFeaturedPosts(categorizedPosts.featured);
         setResearchPosts(categorizedPosts.research);
-        setResearchAndPublications(categorizedPosts.researchAndPubs);
         setArticlePosts(categorizedPosts.articles);
         setNoticePosts(categorizedPosts.notices);
+
+        console.log('Processed posts:', processedPosts);
+        console.log('Categorized posts:', categorizedPosts);
+        console.log('Featured posts:', categorizedPosts.featured);
+        console.log('Research posts:', categorizedPosts.research);
+        console.log('Article posts:', categorizedPosts.articles);
+        console.log('Notice posts:', categorizedPosts.notices);
       }
 
+      if (Array.isArray(footerRes.footerLinks)) {
+        setFooterLinks(footerRes.footerLinks);
+        console.log('Footer links updated:', footerRes.footerLinks);
+      } else {
+        console.error('Invalid footer response:', footerRes);
+      }
+      if (Array.isArray(socialRes.socialLinks)) {
+        setSocialLinks(socialRes.socialLinks);
+        console.log('Footer links updated:', socialRes.socialLinks);
+      } else {
+        console.error('Invalid footer response:', socialRes);
+      }
+      if (Array.isArray(bannerRes.banners)) {
+        setBanners(bannerRes.banners);
+        console.log('Footer links updated:', bannerRes.banners);
+      } else {
+        console.error('Invalid footer response:', bannerRes);
+      }
+      if (Array.isArray(galleryRes.images)) {
+        setGallery(galleryRes.images);
+        console.log('Footer links updated:', galleryRes.images);
+      } else {
+        console.error('Invalid footer response:', galleryRes);
+      }
+
+      let validPages = [];
       if (pagesRes.success) {
         validPages = pagesRes.pages.map((page) => ({
           ...page,
@@ -156,23 +155,41 @@ export const ContentProvider = ({ children }) => {
         setPages(validPages);
       }
 
+      if (categoryRes.success) {
+        setCategories(categoryRes.categories);
+      }
+
+      let validMenus = [];
       if (menusRes.success) {
         const processMenuItems = (items, parentPath = '') => {
-          return items.map((menu) => {
+          const itemMap = new Map();
+          items.forEach((menu) => {
             const normalizedSlug = menu.slug?.replace(/^\/+|\/+$/g, '');
             const fullPath = parentPath
               ? `${parentPath}/${normalizedSlug}`
               : normalizedSlug;
 
-            return {
+            itemMap.set(menu.id, {
               ...menu,
               slug: normalizedSlug,
               href: normalizedSlug ? `/pages/${fullPath}` : '/',
-              children: menu.children?.length
-                ? processMenuItems(menu.children, fullPath)
-                : [],
-            };
+              children: [],
+            });
           });
+
+          const validMenus = [];
+          items.forEach((menu) => {
+            if (menu.parentId) {
+              const parentItem = itemMap.get(menu.parentId);
+              if (parentItem) {
+                parentItem.children.push(itemMap.get(menu.id));
+              }
+            } else {
+              validMenus.push(itemMap.get(menu.id));
+            }
+          });
+
+          return validMenus;
         };
 
         validMenus = processMenuItems(menusRes.menus);
@@ -195,7 +212,7 @@ export const ContentProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, [cache, CACHE_DURATION, processPost, categorizePost]);
+  }, [processPost, categorizePost]);
 
   const forceRefresh = () => {
     setCache({ timestamp: null, data: null });
@@ -203,17 +220,15 @@ export const ContentProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    fetchContent();
-  }, [fetchContent]);
-
-  // Debug logs
-  useEffect(() => {
-    console.log('All posts:', posts.length);
-    console.log('Featured posts:', featuredPosts.length);
-    console.log('Research posts:', researchPosts.length, researchPosts);
-    console.log('Article posts:', articlePosts.length);
-    console.log('Notice posts:', noticePosts.length);
-  }, [posts, featuredPosts, researchPosts, articlePosts, noticePosts]);
+    const now = Date.now();
+    if (
+      !cache.data ||
+      !cache.timestamp ||
+      now - cache.timestamp > CACHE_DURATION
+    ) {
+      fetchContent();
+    }
+  }, [fetchContent, cache, CACHE_DURATION]);
 
   return (
     <ContentContext.Provider
@@ -223,10 +238,13 @@ export const ContentProvider = ({ children }) => {
         researchPosts,
         articlePosts,
         noticePosts,
-        researchAndPublications,
         pages,
         menus,
         footerLinks,
+        socialLinks,
+        banners,
+        gallery,
+        categories,
         loading,
         error,
         refreshContent: fetchContent,
@@ -237,6 +255,7 @@ export const ContentProvider = ({ children }) => {
     </ContentContext.Provider>
   );
 };
+
 ContentProvider.propTypes = {
   children: PropTypes.node.isRequired,
 };
