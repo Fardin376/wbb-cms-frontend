@@ -155,6 +155,8 @@ export const ContentProvider = ({ children }) => {
         setPages(validPages);
       }
 
+      console.log('Valid pages:', validPages);
+
       if (categoryRes.success) {
         setCategories(categoryRes.categories);
       }
